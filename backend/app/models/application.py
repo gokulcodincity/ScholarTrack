@@ -1,14 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import ForeignKey
-from sqlalchemy import DateTime
-from sqlalchemy import Boolean
-from sqlalchemy import Enum
-from sqlalchemy import UniqueConstraint
-
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey, DateTime, Enum, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 from app.utils.enums import ApplicationStatus
@@ -21,43 +14,38 @@ class Application(Base):
 
     __tablename__ = "applications"
 
-    id = Column(
-        Integer,
+    id: Mapped[int] = mapped_column(
         primary_key=True,
         index=True
     )
 
-    student_id = Column(
-        Integer,
+    student_id: Mapped[int] = mapped_column(
         ForeignKey("students.id"),
         nullable=False
     )
 
-    scholarship_id = Column(
-        Integer,
+    scholarship_id: Mapped[int] = mapped_column(
         ForeignKey("scholarships.id"),
         nullable=False
     )
 
-    reviewer_id = Column(
-        Integer,
+    reviewer_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"),
         nullable=True
     )
 
-    status = Column(
+    status: Mapped[ApplicationStatus] = mapped_column(
         Enum(ApplicationStatus),
         default=ApplicationStatus.PENDING,
         nullable=False
     )
 
-    review_completed = Column(
-        Boolean,
+    review_completed: Mapped[bool] = mapped_column(
         default=False,
         nullable=False
     )
 
-    created_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
         nullable=False

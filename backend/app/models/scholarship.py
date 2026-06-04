@@ -1,11 +1,7 @@
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import String
-from sqlalchemy import Text
-from sqlalchemy import Numeric
-from sqlalchemy import Date
-
-from sqlalchemy.orm import relationship
+from datetime import date
+from decimal import Decimal
+from sqlalchemy import Numeric, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
@@ -19,34 +15,30 @@ class Scholarship(Base):
 
     __tablename__ = "scholarships"
 
-    id = Column(
-        Integer,
+    id: Mapped[int] = mapped_column(
         primary_key=True,
         index=True
     )
 
-    title = Column(
-        String(255),
+    title: Mapped[str] = mapped_column(
         nullable=False
     )
 
-    field = Column(
-        String(100),
+    field: Mapped[str] = mapped_column(
         nullable=False
     )
 
-    amount = Column(
+    amount: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False
     )
 
-    eligibility = Column(
+    eligibility: Mapped[str] = mapped_column(
         Text,
         nullable=False
     )
 
-    deadline = Column(
-        Date,
+    deadline: Mapped[date] = mapped_column(
         nullable=False
     )
 
