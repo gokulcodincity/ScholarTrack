@@ -1,27 +1,21 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Float,
-    ForeignKey
-)
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
 
-from app.config.database import Base
+from app.models.base import Base
 
 
 class Student(Base):
 
     __tablename__ = "students"
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    user_id = Column(
-        Integer,
+    user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id")
     )
 
-    department = Column(String)
+    department: Mapped[str | None] = mapped_column()
 
-    cgpa = Column(Float)
+    cgpa: Mapped[float | None] = mapped_column()
 
-    academic_year = Column(String)
+    academic_year: Mapped[str | None] = mapped_column()
