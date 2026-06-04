@@ -1,0 +1,16 @@
+[project]
+name = "scholartrack"
+version = "0.1.0"
+description = "ScholarTrack Application"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.136.3",
+    "pydantic>=2.13.4",
+    "pymongo>=4.17.0",
+    "sqlalchemy>=2.0.50",
+]
+
+[tool.pyright]
+extraPaths = ["backend"]
+
