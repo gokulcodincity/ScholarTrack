@@ -6,6 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.config.database import get_db
 
+from app.middleware.auth_middleware import (
+    get_current_user,
+    require_student,
+    require_reviewer,
+    require_admin
+)
+
 from app.schemas.application_schema import (
     ApplicationCreate,
     ApplicationResponse,
@@ -33,7 +40,8 @@ router = APIRouter(
 )
 def create_new_application(
     application_data: ApplicationCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_student)
 ):
     """
     Student applies for a scholarship.
@@ -59,7 +67,8 @@ def create_new_application(
 )
 def get_application(
     application_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
     """
     Get application by ID.
@@ -85,7 +94,8 @@ def get_application(
 )
 def get_student_application_list(
     student_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_student)
 ):
     """
     Get all applications of a student.
@@ -103,7 +113,8 @@ def get_student_application_list(
 )
 def get_reviewer_application_list(
     reviewer_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_reviewer)
 ):
     """
     Get all applications assigned to reviewer.
@@ -122,7 +133,8 @@ def get_reviewer_application_list(
 def assign_application_reviewer(
     application_id: int,
     reviewer_data: ReviewerAssignment,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
     """
     Admin assigns reviewer.
@@ -149,7 +161,8 @@ def assign_application_reviewer(
 )
 def complete_review(
     application_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_reviewer)
 ):
     """
     Reviewer marks review as completed.

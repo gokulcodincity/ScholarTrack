@@ -6,6 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.config.database import get_db
 
+from app.middleware.auth_middleware import (
+    require_admin
+)
+
 from app.schemas.decision_schema import (
     DecisionCreate,
     DecisionUpdate,
@@ -33,7 +37,8 @@ router = APIRouter(
 )
 def create_new_decision(
     decision_data: DecisionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
     """
     Admin records final decision.
@@ -62,7 +67,8 @@ def create_new_decision(
     response_model=list[DecisionResponse]
 )
 def get_decisions(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
     """
     Get all decisions.
@@ -77,7 +83,8 @@ def get_decisions(
 )
 def get_decision(
     decision_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
     """
     Get decision by ID.
@@ -103,7 +110,8 @@ def get_decision(
 )
 def get_decision_for_application(
     application_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
     """
     Get decision for a specific application.
@@ -130,7 +138,8 @@ def get_decision_for_application(
 def update_existing_decision(
     decision_id: int,
     decision_data: DecisionUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
     """
     Update decision status.
@@ -156,7 +165,8 @@ def update_existing_decision(
 )
 def remove_decision(
     decision_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
     """
     Delete decision.
