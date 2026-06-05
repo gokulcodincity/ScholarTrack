@@ -35,16 +35,12 @@ router = APIRouter(
     "/decisions",
     response_model=DecisionResponse
 )
-def create_new_decision(
+async def create_new_decision(
     decision_data: DecisionCreate,
     db: Session = Depends(get_db),
     current_user=Depends(require_admin)
 ):
-    """
-    Admin records final decision.
-    """
-
-    decision = create_decision(
+    decision = await create_decision(
         db,
         decision_data
     )
@@ -54,8 +50,9 @@ def create_new_decision(
             status_code=400,
             detail=(
                 "Decision cannot be created. "
-                "Review may not be completed or "
-                "decision already exists."
+                "Review may not be completed, "
+                "review score may not exist, "
+                "or decision already exists."
             )
         )
 
@@ -70,10 +67,6 @@ def get_decisions(
     db: Session = Depends(get_db),
     current_user=Depends(require_admin)
 ):
-    """
-    Get all decisions.
-    """
-
     return get_all_decisions(db)
 
 
@@ -86,10 +79,6 @@ def get_decision(
     db: Session = Depends(get_db),
     current_user=Depends(require_admin)
 ):
-    """
-    Get decision by ID.
-    """
-
     decision = get_decision_by_id(
         db,
         decision_id
@@ -113,10 +102,6 @@ def get_decision_for_application(
     db: Session = Depends(get_db),
     current_user=Depends(require_admin)
 ):
-    """
-    Get decision for a specific application.
-    """
-
     decision = get_application_decision(
         db,
         application_id
@@ -141,10 +126,6 @@ def update_existing_decision(
     db: Session = Depends(get_db),
     current_user=Depends(require_admin)
 ):
-    """
-    Update decision status.
-    """
-
     decision = update_decision(
         db,
         decision_id,
@@ -168,10 +149,6 @@ def remove_decision(
     db: Session = Depends(get_db),
     current_user=Depends(require_admin)
 ):
-    """
-    Delete decision.
-    """
-
     deleted = delete_decision(
         db,
         decision_id

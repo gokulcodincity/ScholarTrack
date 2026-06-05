@@ -7,19 +7,11 @@ from app.utils.enums import ApplicationStatus
 
 
 class ApplicationCreate(BaseModel):
-    """
-    Student applies for a scholarship.
-    """
-
     student_id: int
     scholarship_id: int
 
 
 class ApplicationResponse(BaseModel):
-    """
-    Application details returned to client.
-    """
-
     id: int
     student_id: int
     scholarship_id: int
@@ -37,26 +29,14 @@ class ApplicationResponse(BaseModel):
 
 
 class ReviewerAssignment(BaseModel):
-    """
-    Admin assigns reviewer.
-    """
-
     reviewer_id: int
 
 
 class ApplicationStatusUpdate(BaseModel):
-    """
-    Reviewer updates application status.
-    """
-
     status: ApplicationStatus
 
 
 class ApplicationListResponse(BaseModel):
-    """
-    Used when listing applications.
-    """
-
     id: int
 
     student_id: int
@@ -72,3 +52,13 @@ class ApplicationListResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+class ApplicationDetailResponse(BaseModel):
+    application: dict
+
+    essay: dict | None = None
+
+    reviewer_note: dict | None = None
+
+    decision_recorded: bool

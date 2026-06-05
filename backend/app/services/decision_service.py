@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models.application import Application
 from app.models.decision import Decision
+from app.models.reviewer_note import ReviewerNote
 
 from app.schemas.decision_schema import (
     DecisionCreate,
@@ -9,7 +10,7 @@ from app.schemas.decision_schema import (
 )
 
 
-def create_decision(
+async def create_decision(
     db: Session,
     decision_data: DecisionCreate
 ):
@@ -19,7 +20,8 @@ def create_decision(
     Business Rules:
     1. Application must exist.
     2. Review must be completed.
-    3. Only one decision per application.
+    3. Review score must exist.
+    4. Only one decision per application.
     """
 
     application = (
@@ -34,6 +36,17 @@ def create_decision(
         return None
 
     if not application.review_completed:
+        return None
+
+    review_note = await ReviewerNote.find_one(
+        ReviewerNote.application_id
+        == decision_data.application_id
+    )
+
+    if not review_note:
+        return None
+
+    if review_note.score is None:
         return None
 
     existing_decision = (
@@ -67,10 +80,6 @@ def get_decision_by_id(
     db: Session,
     decision_id: int
 ):
-    """
-    Get decision by ID.
-    """
-
     return (
         db.query(Decision)
         .filter(
@@ -84,10 +93,6 @@ def get_application_decision(
     db: Session,
     application_id: int
 ):
-    """
-    Get decision for a specific application.
-    """
-
     return (
         db.query(Decision)
         .filter(
@@ -101,10 +106,6 @@ def get_application_decision(
 def get_all_decisions(
     db: Session
 ):
-    """
-    Get all decisions.
-    """
-
     return (
         db.query(Decision)
         .all()
@@ -116,10 +117,6 @@ def update_decision(
     decision_id: int,
     decision_data: DecisionUpdate
 ):
-    """
-    Update decision status.
-    """
-
     decision = (
         db.query(Decision)
         .filter(
@@ -146,10 +143,6 @@ def delete_decision(
     db: Session,
     decision_id: int
 ):
-    """
-    Delete decision.
-    """
-
     decision = (
         db.query(Decision)
         .filter(

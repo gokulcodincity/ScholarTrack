@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
@@ -6,16 +8,23 @@ from sqlalchemy.orm import Session
 
 from app.config.database import get_db
 
+from app.middleware.auth_middleware import (
+    get_current_user,
+    require_admin
+)
+
 from app.schemas.scholarship_schema import (
     ScholarshipCreate,
     ScholarshipUpdate,
-    ScholarshipResponse
+    ScholarshipResponse,
+    ScholarshipStatsResponse
 )
 
 from app.services.scholarship_service import (
     create_scholarship,
     get_all_scholarships,
     get_scholarship_by_id,
+    get_scholarship_stats,
     update_scholarship,
     delete_scholarship
 )
@@ -32,8 +41,13 @@ router = APIRouter(
 )
 def create_new_scholarship(
     scholarship_data: ScholarshipCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
+    """
+    Admin creates scholarship.
+    """
+
     return create_scholarship(
         db,
         scholarship_data
@@ -45,9 +59,52 @@ def create_new_scholarship(
     response_model=list[ScholarshipResponse]
 )
 def get_scholarships(
-    db: Session = Depends(get_db)
+    field: str | None = None,
+    min_amount: float | None = None,
+    deadline_before: date | None = None,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
-    return get_all_scholarships(db)
+    """
+    List scholarships with optional filters.
+    """
+
+    return get_all_scholarships(
+        db,
+        field,
+        min_amount,
+        deadline_before
+    )
+
+
+@router.get(
+    "/{scholarship_id}/stats",
+    response_model=ScholarshipStatsResponse
+)
+def get_scholarship_statistics(
+    scholarship_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """
+    Get scholarship application statistics.
+    """
+
+    scholarship = get_scholarship_by_id(
+        db,
+        scholarship_id
+    )
+
+    if not scholarship:
+        raise HTTPException(
+            status_code=404,
+            detail="Scholarship not found"
+        )
+
+    return get_scholarship_stats(
+        db,
+        scholarship_id
+    )
 
 
 @router.get(
@@ -56,8 +113,13 @@ def get_scholarships(
 )
 def get_scholarship(
     scholarship_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
+    """
+    Get scholarship by ID.
+    """
+
     scholarship = get_scholarship_by_id(
         db,
         scholarship_id
@@ -79,8 +141,13 @@ def get_scholarship(
 def update_existing_scholarship(
     scholarship_id: int,
     scholarship_data: ScholarshipUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
+    """
+    Admin updates scholarship.
+    """
+
     scholarship = update_scholarship(
         db,
         scholarship_id,
@@ -101,8 +168,13 @@ def update_existing_scholarship(
 )
 def remove_scholarship(
     scholarship_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
 ):
+    """
+    Admin deletes scholarship.
+    """
+
     deleted = delete_scholarship(
         db,
         scholarship_id

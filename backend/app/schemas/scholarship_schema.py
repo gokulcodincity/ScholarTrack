@@ -1,6 +1,8 @@
 from datetime import date
+
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import ConfigDict
 
 
 class ScholarshipCreate(BaseModel):
@@ -36,17 +38,12 @@ class ScholarshipCreate(BaseModel):
 class ScholarshipUpdate(BaseModel):
     """
     Schema for updating scholarship details.
-    All fields are optional.
     """
 
     title: str | None = None
-
     field: str | None = None
-
     amount: float | None = None
-
     eligibility: str | None = None
-
     deadline: date | None = None
 
 
@@ -62,5 +59,17 @@ class ScholarshipResponse(BaseModel):
     eligibility: str
     deadline: date
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+
+class ScholarshipStatsResponse(BaseModel):
+    """
+    Scholarship statistics response.
+    """
+
+    scholarship_id: int
+    total_applied: int
+    shortlisted: int
+    awarded: int

@@ -19,7 +19,6 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
-
 @router.post("/register")
 def register(
     data: RegisterSchema,

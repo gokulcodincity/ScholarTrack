@@ -1,7 +1,4 @@
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
-
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
@@ -16,18 +13,34 @@ from app.middleware.auth_middleware import (
 from app.schemas.application_schema import (
     ApplicationCreate,
     ApplicationResponse,
-    ReviewerAssignment
+    ReviewerAssignment,
+    ApplicationDetailResponse
 )
 
-from app.schemas.reviewer_note_schema import ReviewSubmission
-from app.services.reviewer_note_service import create_reviewer_note
+from app.schemas.reviewer_note_schema import (
+    ReviewSubmission
+)
+
+from app.schemas.decision_schema import (
+    DecisionCreate,
+    DecisionResponse
+)
+
+from app.services.reviewer_note_service import (
+    create_reviewer_note
+)
+
+from app.services.decision_service import (
+    create_decision
+)
+
 from app.services.application_service import (
     create_application,
-    get_application_by_id,
+    get_application_full_details,
     get_student_applications,
     get_reviewer_applications,
     assign_reviewer,
-    submit_review,
+    submit_review
 )
 
 router = APIRouter(
@@ -45,10 +58,6 @@ def create_new_application(
     db: Session = Depends(get_db),
     current_user=Depends(require_student)
 ):
-    """
-    Student applies for a scholarship.
-    """
-
     application = create_application(
         db,
         application_data
@@ -64,19 +73,40 @@ def create_new_application(
 
 
 @router.get(
-    "/{application_id}",
-    response_model=ApplicationResponse
+    "/",
+    response_model=list[ApplicationResponse]
 )
-def get_application(
+def list_applications(
+    student_id: int | None = None,
+    reviewer_id: int | None = None,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    if student_id:
+        return get_student_applications(
+            db,
+            student_id
+        )
+
+    if reviewer_id:
+        return get_reviewer_applications(
+            db,
+            reviewer_id
+        )
+
+    return []
+
+
+@router.get(
+    "/{application_id}",
+    response_model=ApplicationDetailResponse
+)
+async def get_application(
     application_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    """
-    Get application by ID.
-    """
-
-    application = get_application_by_id(
+    application = await get_application_full_details(
         db,
         application_id
     )
@@ -99,10 +129,6 @@ def get_student_application_list(
     db: Session = Depends(get_db),
     current_user=Depends(require_student)
 ):
-    """
-    Get all applications of a student.
-    """
-
     return get_student_applications(
         db,
         student_id
@@ -118,10 +144,6 @@ def get_reviewer_application_list(
     db: Session = Depends(get_db),
     current_user=Depends(require_reviewer)
 ):
-    """
-    Get all applications assigned to reviewer.
-    """
-
     return get_reviewer_applications(
         db,
         reviewer_id
@@ -138,10 +160,6 @@ def assign_application_reviewer(
     db: Session = Depends(get_db),
     current_user=Depends(require_admin)
 ):
-    """
-    Admin assigns reviewer.
-    """
-
     application = assign_reviewer(
         db,
         application_id,
@@ -166,10 +184,6 @@ def complete_review(
     db: Session = Depends(get_db),
     current_user=Depends(require_reviewer)
 ):
-    """
-    Reviewer marks review as completed.
-    """
-
     application = submit_review(
         db,
         application_id
@@ -194,10 +208,6 @@ async def submit_application_review(
     db: Session = Depends(get_db),
     current_user=Depends(require_reviewer)
 ):
-    """
-    Reviewer scores and submits notes to MongoDB, and marks review as complete in PostgreSQL.
-    """
-
     await create_reviewer_note(
         application_id,
         review_data.reviewer_notes,
@@ -217,3 +227,38 @@ async def submit_application_review(
         )
 
     return application
+
+
+@router.patch(
+    "/{application_id}/decision",
+    response_model=DecisionResponse
+)
+async def record_application_decision(
+    application_id: int,
+    decision_data: DecisionCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
+):
+    if application_id != decision_data.application_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Application ID mismatch"
+        )
+
+    decision = await create_decision(
+        db,
+        decision_data
+    )
+
+    if not decision:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Decision cannot be created. "
+                "Review may not be completed, "
+                "review score may not exist, "
+                "or decision already exists."
+            )
+        )
+
+    return decision
