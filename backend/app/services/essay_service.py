@@ -3,12 +3,14 @@ from app.models.essay import Essay
 
 async def create_essay(
     application_id: int,
-    essay_text: str
+    essay_text: str,
+    supporting_content: str | None = None
 ):
 
     essay = Essay(
         application_id=application_id,
-        essay=essay_text
+        essay=essay_text,
+        supporting_content=supporting_content
     )
 
     await essay.insert()

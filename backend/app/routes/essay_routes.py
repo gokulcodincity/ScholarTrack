@@ -28,7 +28,8 @@ async def add_essay(
 
     return await create_essay(
         essay_data.application_id,
-        essay_data.essay
+        essay_data.essay,
+        essay_data.supporting_content
     )
 
 

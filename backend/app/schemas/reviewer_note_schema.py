@@ -9,6 +9,8 @@ class ReviewerNoteCreate(BaseModel):
 
     score: int
 
+    scoring_rationale: str | None = None
+
 
 class ReviewerNoteResponse(BaseModel):
 
@@ -19,3 +21,14 @@ class ReviewerNoteResponse(BaseModel):
     reviewer_notes: str
 
     score: int
+
+    scoring_rationale: str | None = None
+
+
+class ReviewSubmission(BaseModel):
+
+    reviewer_notes: str
+
+    score: int
+
+    scoring_rationale: str | None = None

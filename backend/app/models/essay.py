@@ -7,5 +7,7 @@ class Essay(Document):
 
     essay: str
 
+    supporting_content: str | None = None
+
     class Settings:
         name = "essays"

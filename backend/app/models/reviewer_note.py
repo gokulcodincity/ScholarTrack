@@ -9,5 +9,7 @@ class ReviewerNote(Document):
 
     score: int
 
+    scoring_rationale: str | None = None
+
     class Settings:
         name = "reviewer_notes"

@@ -38,7 +38,8 @@ async def add_note(
     return await create_reviewer_note(
         note_data.application_id,
         note_data.reviewer_notes,
-        note_data.score
+        note_data.score,
+        note_data.scoring_rationale
     )
 
 

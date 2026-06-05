@@ -19,6 +19,8 @@ from app.schemas.application_schema import (
     ReviewerAssignment
 )
 
+from app.schemas.reviewer_note_schema import ReviewSubmission
+from app.services.reviewer_note_service import create_reviewer_note
 from app.services.application_service import (
     create_application,
     get_application_by_id,
@@ -167,6 +169,41 @@ def complete_review(
     """
     Reviewer marks review as completed.
     """
+
+    application = submit_review(
+        db,
+        application_id
+    )
+
+    if not application:
+        raise HTTPException(
+            status_code=404,
+            detail="Application not found"
+        )
+
+    return application
+
+
+@router.post(
+    "/{application_id}/review",
+    response_model=ApplicationResponse
+)
+async def submit_application_review(
+    application_id: int,
+    review_data: ReviewSubmission,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_reviewer)
+):
+    """
+    Reviewer scores and submits notes to MongoDB, and marks review as complete in PostgreSQL.
+    """
+
+    await create_reviewer_note(
+        application_id,
+        review_data.reviewer_notes,
+        review_data.score,
+        review_data.scoring_rationale
+    )
 
     application = submit_review(
         db,
