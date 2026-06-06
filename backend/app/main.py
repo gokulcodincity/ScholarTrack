@@ -7,14 +7,14 @@ from app.config.mongodb import init_mongodb
 
 from app.models.base import Base
 
-# PostgreSQL Models
+# PostgreSQL models
 from app.models.user import User
 from app.models.student import Student
 from app.models.scholarship import Scholarship
 from app.models.application import Application
 from app.models.decision import Decision
 
-# MongoDB ODM Models
+# MongoDB models
 from app.models.essay import Essay
 from app.models.reviewer_note import ReviewerNote
 
@@ -47,7 +47,7 @@ from app.routes.reviewer_note_routes import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Initialize MongoDB ODM when application starts.
+    Initialize MongoDB when the application starts.
     """
 
     await init_mongodb()
@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
     print("Application Shutdown")
 
 
-# Create PostgreSQL Tables
+# Create PostgreSQL tables from registered models
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -84,13 +84,17 @@ app.include_router(application_router)
 # Admin
 app.include_router(admin_router)
 
-# MongoDB ODM
+# MongoDB
 app.include_router(essay_router)
 app.include_router(reviewer_note_router)
 
 
 @app.get("/")
 def home():
+    """
+    Health check endpoint.
+    """
+
     return {
         "message": "ScholarTrack Backend Running"
     }
