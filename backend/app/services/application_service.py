@@ -187,6 +187,7 @@ def submit_review(
         return None
 
     application.review_completed = True
+    application.status = ApplicationStatus.REVIEW_DONE
 
     db.commit()
     db.refresh(application)

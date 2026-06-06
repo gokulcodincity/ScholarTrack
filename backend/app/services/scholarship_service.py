@@ -112,10 +112,10 @@ def get_scholarship_stats(
 
     for status, count in decision_counts:
 
-        if status == DecisionStatus.APPROVED:
+        if status == DecisionStatus.AWARDED:
             awarded = count
 
-        elif status == DecisionStatus.WAITLISTED:
+        elif status == DecisionStatus.SHORTLISTED:
             shortlisted = count
 
     return {

@@ -10,12 +10,13 @@ class UserRole(str, Enum):
 class ApplicationStatus(str, Enum):
     PENDING = "PENDING"
     UNDER_REVIEW = "UNDER_REVIEW"
+    REVIEW_DONE = "REVIEW_DONE"
     SHORTLISTED = "SHORTLISTED"
     REJECTED = "REJECTED"
     AWARDED = "AWARDED"
 
 
 class DecisionStatus(str, Enum):
-    APPROVED = "APPROVED"
+    AWARDED = "AWARDED"
+    SHORTLISTED = "SHORTLISTED"
     REJECTED = "REJECTED"
-    WAITLISTED = "WAITLISTED"

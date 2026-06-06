@@ -8,6 +8,7 @@ from app.schemas.decision_schema import (
     DecisionCreate,
     DecisionUpdate
 )
+from app.utils.enums import ApplicationStatus, DecisionStatus
 
 
 async def create_decision(
@@ -66,6 +67,14 @@ async def create_decision(
         decision_status=decision_data.decision_status,
         decided_by=decision_data.decided_by
     )
+
+    # Sync application status with decision status
+    if decision_data.decision_status == DecisionStatus.AWARDED:
+        application.status = ApplicationStatus.AWARDED
+    elif decision_data.decision_status == DecisionStatus.SHORTLISTED:
+        application.status = ApplicationStatus.SHORTLISTED
+    elif decision_data.decision_status == DecisionStatus.REJECTED:
+        application.status = ApplicationStatus.REJECTED
 
     db.add(decision)
 
@@ -131,6 +140,20 @@ def update_decision(
     decision.decision_status = (
         decision_data.decision_status
     )
+
+    # Sync application status with decision status
+    application = (
+        db.query(Application)
+        .filter(Application.id == decision.application_id)
+        .first()
+    )
+    if application:
+        if decision_data.decision_status == DecisionStatus.AWARDED:
+            application.status = ApplicationStatus.AWARDED
+        elif decision_data.decision_status == DecisionStatus.SHORTLISTED:
+            application.status = ApplicationStatus.SHORTLISTED
+        elif decision_data.decision_status == DecisionStatus.REJECTED:
+            application.status = ApplicationStatus.REJECTED
 
     db.commit()
 
