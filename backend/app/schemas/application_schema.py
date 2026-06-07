@@ -23,6 +23,10 @@ class ApplicationResponse(BaseModel):
 
     created_at: datetime
 
+    student_name: str | None = None
+
+    reviewer_name: str | None = None
+
     model_config = ConfigDict(
         from_attributes=True
     )
@@ -62,3 +66,5 @@ class ApplicationDetailResponse(BaseModel):
     reviewer_note: dict | None = None
 
     decision_recorded: bool
+
+    decision: dict | None = None

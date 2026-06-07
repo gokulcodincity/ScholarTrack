@@ -1,6 +1,9 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse
+from app.middleware.cors import setup_cors
 
 from app.config.database import engine
 from app.config.mongodb import init_mongodb
@@ -13,6 +16,7 @@ from app.models.student import Student
 from app.models.scholarship import Scholarship
 from app.models.application import Application
 from app.models.decision import Decision
+from app.models.reviewer_request import ReviewerRequest
 
 # MongoDB ODM Models
 from app.models.essay import Essay
@@ -63,8 +67,23 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="ScholarTrack API",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url=None,       # Disable default docs (uses slow unpkg CDN)
+    redoc_url=None
 )
+
+setup_cors(app)
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui():
+    """Serve Swagger UI using jsdelivr CDN (much faster than default unpkg)."""
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="ScholarTrack API - Docs",
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    )
 
 # Authentication
 app.include_router(auth_router)

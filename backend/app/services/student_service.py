@@ -27,7 +27,7 @@ def get_student_by_id(
 ):
  
     student = db.query(Student).filter(
-        Student.id == student_id
+        Student.user_id == student_id
     ).first()
  
     if not student:

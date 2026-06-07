@@ -39,6 +39,7 @@ from app.services.application_service import (
     get_application_full_details,
     get_student_applications,
     get_reviewer_applications,
+    get_all_applications,
     assign_reviewer,
     submit_review
 )
@@ -93,6 +94,9 @@ def list_applications(
             db,
             reviewer_id
         )
+
+    if current_user.get("role") == "ADMIN":
+        return get_all_applications(db)
 
     return []
 
@@ -244,6 +248,9 @@ async def record_application_decision(
             status_code=400,
             detail="Application ID mismatch"
         )
+
+    if decision_data.decided_by is None:
+        decision_data.decided_by = current_user.get("id")
 
     decision = await create_decision(
         db,

@@ -11,6 +11,12 @@ class RegisterSchema(BaseModel):
 
     role: str
 
+    department: str | None = None
+
+    cgpa: float | None = None
+
+    academic_year: str | None = None
+
 
 class LoginSchema(BaseModel):
 

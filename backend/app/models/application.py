@@ -20,7 +20,7 @@ class Application(Base):
     )
 
     student_id: Mapped[int] = mapped_column(
-        ForeignKey("students.id"),
+        ForeignKey("users.id"),
         nullable=False
     )
 
@@ -61,6 +61,24 @@ class Application(Base):
         back_populates="application",
         uselist=False
     )
+
+    student = relationship(
+        "User",
+        foreign_keys=[student_id]
+    )
+
+    reviewer = relationship(
+        "User",
+        foreign_keys=[reviewer_id]
+    )
+
+    @property
+    def student_name(self) -> str | None:
+        return self.student.name if self.student else None
+
+    @property
+    def reviewer_name(self) -> str | None:
+        return self.reviewer.name if self.reviewer else None
 
     __table_args__ = (
         UniqueConstraint(

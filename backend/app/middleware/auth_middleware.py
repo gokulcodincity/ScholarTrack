@@ -53,7 +53,7 @@ def require_admin(
     current_user: dict = Depends(get_current_user)
 ):
 
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role", "").upper() != "ADMIN":
 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -67,7 +67,7 @@ def require_student(
     current_user: dict = Depends(get_current_user)
 ):
 
-    if current_user.get("role") != "STUDENT":
+    if current_user.get("role", "").upper() != "STUDENT":
 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -81,7 +81,7 @@ def require_reviewer(
     current_user: dict = Depends(get_current_user)
 ):
 
-    if current_user.get("role") != "REVIEWER":
+    if current_user.get("role", "").upper() != "REVIEWER":
 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

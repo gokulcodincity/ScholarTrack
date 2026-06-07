@@ -16,7 +16,7 @@ class DecisionCreate(BaseModel):
 
     decision_status: DecisionStatus
 
-    decided_by: int
+    decided_by: int | None = None
 
 
 class DecisionResponse(BaseModel):

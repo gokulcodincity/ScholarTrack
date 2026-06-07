@@ -99,7 +99,9 @@ async def get_application_full_details(
             "reviewer_id": application.reviewer_id,
             "status": application.status.value,
             "review_completed": application.review_completed,
-            "created_at": str(application.created_at)
+            "created_at": str(application.created_at),
+            "student_name": application.student_name,
+            "reviewer_name": application.reviewer_name
         },
         "essay": (
             {
@@ -116,7 +118,14 @@ async def get_application_full_details(
             }
             if reviewer_note else None
         ),
-        "decision_recorded": decision_recorded
+        "decision_recorded": decision_recorded,
+        "decision": (
+            {
+                "id": decision.id,
+                "decision_status": decision.decision_status.value
+            }
+            if decision else None
+        )
     }
 
 
@@ -131,6 +140,12 @@ def get_student_applications(
         )
         .all()
     )
+
+
+def get_all_applications(
+    db: Session
+):
+    return db.query(Application).all()
 
 
 def get_reviewer_applications(
