@@ -1,14 +1,60 @@
-def test_full_decision_lifecycle(client, student_user, student_token, admin_token, reviewer_user, reviewer_token):
+def scholarship_payload(title="Decision Scholarship"):
+    return {
+        "title": title,
+        "field": "CS",
+        "amount": 5000.00,
+        "eligibility": "CGPA greater than 8.0",
+        "deadline": "2026-12-31"
+    }
+
+
+def create_reviewed_application(
+    client,
+    student_user,
+    student_token,
+    admin_token,
+    reviewer_user,
+    reviewer_token
+):
+    create_sch = client.post(
+        "/scholarships/",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=scholarship_payload()
+    )
+    sch_id = create_sch.json()["id"]
+    app_resp = client.post(
+        "/applications/",
+        headers={"Authorization": f"Bearer {student_token}"},
+        json={"student_id": student_user.id, "scholarship_id": sch_id}
+    )
+    app_id = app_resp.json()["id"]
+    client.patch(
+        f"/applications/{app_id}/assign",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={"reviewer_id": reviewer_user.id}
+    )
+    client.post(
+        "/reviewer-notes/",
+        headers={"Authorization": f"Bearer {reviewer_token}"},
+        json={
+            "application_id": app_id,
+            "reviewer_notes": "Great candidate!",
+            "score": 95,
+            "scoring_rationale": "High GPA"
+        }
+    )
+    client.patch(
+        f"/applications/{app_id}/review",
+        headers={"Authorization": f"Bearer {reviewer_token}"}
+    )
+    return app_id
+
+
+def test_full_decision_lifecycle(client, clean_mongodb, student_user, student_token, admin_user, admin_token, reviewer_user, reviewer_token):
     # 1. Admin creates scholarship
     create_sch = client.post("/scholarships/", headers={
         "Authorization": f"Bearer {admin_token}"
-    }, json={
-        "title": "End-to-End Scholarship",
-        "field_of_study": "CS",
-        "amount": 5000.00,
-        "eligibility_criteria": "CGPA > 8.0",
-        "deadline": "2026-12-31"
-    })
+    }, json=scholarship_payload(title="End-to-End Scholarship"))
     sch_id = create_sch.json()["id"]
 
     # 2. Student applies
@@ -33,7 +79,7 @@ def test_full_decision_lifecycle(client, student_user, student_token, admin_toke
     client.post("/reviewer-notes/", headers={"Authorization": f"Bearer {reviewer_token}"}, json={
         "application_id": app_id,
         "reviewer_notes": "Great candidate!",
-        "score": 95.5,
+        "score": 95,
         "scoring_rationale": "High GPA and good projects"
     })
 
@@ -49,7 +95,8 @@ def test_full_decision_lifecycle(client, student_user, student_token, admin_toke
         "Authorization": f"Bearer {admin_token}"
     }, json={
         "application_id": app_id,
-        "decision_status": "AWARDED"
+        "decision_status": "AWARDED",
+        "decided_by": admin_user.id
     })
     
     assert dec_resp.status_code == 200
@@ -58,7 +105,11 @@ def test_full_decision_lifecycle(client, student_user, student_token, admin_toke
 def test_decision_only_after_review(client, student_user, student_token, admin_token, reviewer_user):
     # Setup
     create_sch = client.post("/scholarships/", headers={"Authorization": f"Bearer {admin_token}"}, json={
-        "title": "Fail Decision Scholarship", "field_of_study": "CS", "amount": 5000.00, "eligibility_criteria": "None", "deadline": "2026-12-31"
+        "title": "Fail Decision Scholarship",
+        "field": "CS",
+        "amount": 5000.00,
+        "eligibility": "Open to qualified CS students",
+        "deadline": "2026-12-31"
     })
     sch_id = create_sch.json()["id"]
     app_resp = client.post("/applications/", headers={"Authorization": f"Bearer {student_token}"}, json={"student_id": student_user.id, "scholarship_id": sch_id})
@@ -69,4 +120,46 @@ def test_decision_only_after_review(client, student_user, student_token, admin_t
         "application_id": app_id, "decision_status": "AWARDED"
     })
     assert dec_resp.status_code == 400
-    assert "Review may not be completed" in dec_resp.json()["detail"]
+    assert "Review may not be completed" in dec_resp.json()["error"]["message"]
+
+
+def test_prevent_duplicate_decisions(
+    client,
+    clean_mongodb,
+    student_user,
+    student_token,
+    admin_user,
+    admin_token,
+    reviewer_user,
+    reviewer_token
+):
+    app_id = create_reviewed_application(
+        client,
+        student_user,
+        student_token,
+        admin_token,
+        reviewer_user,
+        reviewer_token
+    )
+    first = client.post(
+        "/admin/decisions",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={
+            "application_id": app_id,
+            "decision_status": "AWARDED",
+            "decided_by": admin_user.id
+        }
+    )
+    second = client.post(
+        "/admin/decisions",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={
+            "application_id": app_id,
+            "decision_status": "REJECTED",
+            "decided_by": admin_user.id
+        }
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 400
+    assert "decision already exists" in second.json()["error"]["message"]

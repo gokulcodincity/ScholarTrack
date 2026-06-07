@@ -19,7 +19,7 @@ def test_submit_reviewer_request(client, student_user, student_token):
     # Wait, student_user is role=STUDENT. The endpoint requires PENDING_REVIEWER.
     # Let's just assert it gets rejected correctly.
     assert response.status_code == 400
-    assert "Only PENDING_REVIEWER" in response.json()["detail"]
+    assert "Only PENDING_REVIEWER" in response.json()["error"]["message"]
 
 def test_fetch_reviewer_note_unauthorized(client, student_token):
     # Students cannot fetch reviewer notes
@@ -27,7 +27,7 @@ def test_fetch_reviewer_note_unauthorized(client, student_token):
         "Authorization": f"Bearer {student_token}"
     })
     assert response.status_code == 403
-    assert "Reviewer or Admin" in response.json()["detail"]
+    assert "Reviewer or Admin" in response.json()["error"]["message"]
 
 def test_health_check(client):
     response = client.get("/health")

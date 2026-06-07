@@ -8,6 +8,6 @@ source .venv/bin/activate
 
 echo "Installing Dependencies..."
 
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 echo "Setup Completed Successfully!"

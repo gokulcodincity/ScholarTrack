@@ -10,7 +10,7 @@ from app.config.rate_limiter import limiter
 
 setup_logging()
 
-from app.config.database import engine
+from app.config.database import engine, ensure_database_exists
 from app.config.mongodb import init_mongodb
 
 from app.models.base import Base
@@ -56,9 +56,11 @@ from app.routes.reviewer_note_routes import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Initialize MongoDB ODM when application starts.
+    Initialize database dependencies when application starts.
     """
 
+    ensure_database_exists()
+    Base.metadata.create_all(bind=engine)
     await init_mongodb()
 
     yield
@@ -66,7 +68,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application Shutdown")
 
 
-# PostgreSQL Tables now managed by Alembic
+# PostgreSQL tables are created from SQLAlchemy models during startup.
 
 
 app = FastAPI(
