@@ -1,18 +1,20 @@
 from pydantic import BaseModel
+from app.utils.sanitization import SanitizedStr
+from beanie import PydanticObjectId
 
 
 class EssayCreate(BaseModel):
 
     application_id: int
 
-    essay: str
+    essay: SanitizedStr
 
-    supporting_content: str | None = None
+    supporting_content: SanitizedStr | None = None
 
 
 class EssayResponse(BaseModel):
 
-    id: str
+    id: PydanticObjectId
 
     application_id: int
 

@@ -18,4 +18,6 @@ class User(Base):
 
     password: Mapped[str] = mapped_column(nullable=False)
 
-    role: Mapped[str] = mapped_column(nullable=False)
+    role: Mapped[str] = mapped_column(nullable=False)
+
+    verified_email: Mapped[bool] = mapped_column(default=False, nullable=False)

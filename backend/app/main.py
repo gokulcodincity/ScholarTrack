@@ -1,9 +1,14 @@
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from app.middleware.cors import setup_cors
+from app.middleware.error_handler import setup_exception_handlers
+from sqlalchemy import text
+from app.config.logger import setup_logging, logger
+from app.config.rate_limiter import limiter
+
+setup_logging()
 
 from app.config.database import engine
 from app.config.mongodb import init_mongodb
@@ -58,11 +63,11 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    print("Application Shutdown")
+    logger.info("Application Shutdown")
 
 
-# Create PostgreSQL Tables
-Base.metadata.create_all(bind=engine)
+# PostgreSQL Tables now managed by Alembic
+
 
 app = FastAPI(
     title="ScholarTrack API",
@@ -73,6 +78,9 @@ app = FastAPI(
 )
 
 setup_cors(app)
+setup_exception_handlers(app)
+
+app.state.limiter = limiter
 
 
 @app.get("/docs", include_in_schema=False)
@@ -110,6 +118,17 @@ app.include_router(reviewer_note_router)
 
 @app.get("/")
 def home():
+    logger.info("Home endpoint accessed")
     return {
         "message": "ScholarTrack Backend Running"
     }
+
+@app.get("/health")
+def health_check():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error("Health check failed", error=str(e))
+        return {"status": "error", "detail": "Database connection failed"}

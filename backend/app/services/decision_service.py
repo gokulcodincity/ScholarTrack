@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from fastapi.concurrency import run_in_threadpool
 
 from app.models.application import Application
 from app.models.decision import Decision
@@ -25,11 +26,9 @@ async def create_decision(
     4. Only one decision per application.
     """
 
-    application = (
-        db.query(Application)
-        .filter(
-            Application.id == decision_data.application_id
-        )
+    application = await run_in_threadpool(
+        lambda: db.query(Application)
+        .filter(Application.id == decision_data.application_id)
         .first()
     )
 
@@ -50,12 +49,9 @@ async def create_decision(
     if review_note.score is None:
         return None
 
-    existing_decision = (
-        db.query(Decision)
-        .filter(
-            Decision.application_id
-            == decision_data.application_id
-        )
+    existing_decision = await run_in_threadpool(
+        lambda: db.query(Decision)
+        .filter(Decision.application_id == decision_data.application_id)
         .first()
     )
 
@@ -76,13 +72,17 @@ async def create_decision(
     elif decision_data.decision_status == DecisionStatus.REJECTED:
         application.status = ApplicationStatus.REJECTED
 
-    db.add(decision)
+    def commit_decision(db, application, decision):
+        db.add(decision)
+        try:
+            db.commit()
+            db.refresh(decision)
+        except Exception:
+            db.rollback()
+            raise
+        return decision
 
-    db.commit()
-
-    db.refresh(decision)
-
-    return decision
+    return await run_in_threadpool(commit_decision, db, application, decision)
 
 
 def get_decision_by_id(
@@ -155,9 +155,12 @@ def update_decision(
         elif decision_data.decision_status == DecisionStatus.REJECTED:
             application.status = ApplicationStatus.REJECTED
 
-    db.commit()
-
-    db.refresh(decision)
+    try:
+        db.commit()
+        db.refresh(decision)
+    except Exception:
+        db.rollback()
+        raise
 
     return decision
 
@@ -179,6 +182,10 @@ def delete_decision(
 
     db.delete(decision)
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     return True

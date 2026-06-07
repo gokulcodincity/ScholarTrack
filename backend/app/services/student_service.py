@@ -15,8 +15,12 @@ def create_student(data, db: Session):
     )
  
     db.add(student)
-    db.commit()
-    db.refresh(student)
+    try:
+        db.commit()
+        db.refresh(student)
+    except Exception:
+        db.rollback()
+        raise
  
     return student
  

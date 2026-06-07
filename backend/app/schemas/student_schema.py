@@ -1,12 +1,13 @@
 from pydantic import BaseModel, ConfigDict
+from app.utils.sanitization import SanitizedStr
 
 
 class StudentCreateSchema(BaseModel):
 
     user_id: int
-    department: str
+    department: SanitizedStr
     cgpa: float
-    academic_year: str
+    academic_year: SanitizedStr
 
 
 class StudentResponseSchema(BaseModel):

@@ -1,0 +1,146 @@
+trigger:
+  branches:
+    include:
+      - main
+      - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # In Azure DevOps, create a Variable Group named "scholartrack-secrets" to hold your secure env vars.
+  # - group: scholartrack-secrets
+  python.version: '3.10'
+
+stages:
+- stage: QualityAndSecurity
+  displayName: 'Quality Gates & Security'
+  jobs:
+  - job: LintAndFormat
+    displayName: 'Linting & Formatting'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+      displayName: 'Use Python $(python.version)'
+    
+    - script: |
+        python -m pip install --upgrade pip
+        pip install uv
+        uv sync --dev
+      displayName: 'Install Dependencies via UV'
+
+    - script: |
+        uv run black --check backend/
+        uv run isort --check-only backend/
+      displayName: 'Check Formatting (Black & isort)'
+
+    - script: |
+        uv run flake8 backend/
+      displayName: 'Linting (Flake8)'
+
+    - script: |
+        uv run mypy backend/app
+      displayName: 'Static Type Checking (MyPy)'
+
+  - job: SecurityScan
+    displayName: 'Security Scanning'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+    
+    - script: |
+        python -m pip install --upgrade pip
+        pip install uv
+        uv sync --dev
+      displayName: 'Install Dependencies via UV'
+
+    - script: |
+        uv run bandit -r backend/app
+      displayName: 'Static Security Analysis (Bandit)'
+
+    - script: |
+        # Export requirements for safety to parse
+        uv pip compile pyproject.toml -o requirements_for_safety.txt
+        uv run safety check -r requirements_for_safety.txt || true
+      displayName: 'Dependency Scanning (Safety)'
+
+- stage: Test
+  displayName: 'Automated Testing'
+  dependsOn: QualityAndSecurity
+  jobs:
+  - job: RunTests
+    displayName: 'Run Pytest & Coverage'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: scholartrack_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+      mongo:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+    
+    - script: |
+        python -m pip install --upgrade pip
+        pip install uv
+        uv sync --dev
+      displayName: 'Install Dependencies via UV'
+
+    # Note: Integration tests hit the real ephemeral databases spun up in the services block above.
+    # We export environment variables so your app knows to connect to the test databases.
+    - script: |
+        export DATABASE_URL="postgresql://testuser:testpassword@localhost:5432/scholartrack_test"
+        export MONGO_URI="mongodb://localhost:27017/scholartrack_test"
+        uv run pytest backend/tests --junitxml=junit/test-results.xml --cov=backend/app --cov-report=xml --cov-report=html --cov-fail-under=80
+      displayName: 'Run Unit and Integration Tests (Fail <80% Coverage)'
+
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFiles: '**/test-results.xml'
+        testRunTitle: 'Python $(python.version)'
+      displayName: 'Publish JUnit Test Results'
+
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov'
+      displayName: 'Publish Code Coverage Dashboards'
+
+- stage: Package
+  displayName: 'Package Artifact'
+  dependsOn: Test
+  condition: succeeded()
+  jobs:
+  - job: BuildArtifact
+    steps:
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/backend'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/scholartrack-backend-$(Build.BuildId).zip'
+        replaceExistingArchive: true
+      displayName: 'Package Backend Code (Reproducible Build)'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+      displayName: 'Publish Versioned Artifact'

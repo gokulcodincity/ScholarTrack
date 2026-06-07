@@ -11,6 +11,9 @@ from app.config.database import get_db
 from app.middleware.auth_middleware import (
     require_admin
 )
+from app.schemas.auth_schema import RegisterSchema
+from app.config.security import hash_password
+from app.repositories.user_repository import UserRepository
 
 from app.schemas.decision_schema import (
     DecisionCreate,
@@ -38,6 +41,37 @@ router = APIRouter(
     prefix="/admin",
     tags=["Admin"]
 )
+
+@router.post(
+    "/users",
+    response_model=UserResponseSchema
+)
+def create_admin_or_reviewer(
+    data: RegisterSchema,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin)
+):
+    """
+    Admin-only endpoint to instantly create ADMIN or active REVIEWER accounts.
+    """
+    user_repo = UserRepository(db)
+    if user_repo.get_by_email(data.email):
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    role = data.role.upper()
+    if role not in ["ADMIN", "REVIEWER", "STUDENT"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    user = User(
+        name=data.name,
+        email=data.email,
+        password=hash_password(data.password),
+        role=role,
+        verified_email=True  # Admin created accounts are pre-verified
+    )
+    user = user_repo.create(user)
+    return user
+
 
 
 @router.post(

@@ -12,6 +12,7 @@ from app.middleware.auth_middleware import (
     get_current_user,
     require_admin
 )
+from app.config.redis import get_cache, set_cache, delete_cache
 
 from app.schemas.scholarship_schema import (
     ScholarshipCreate,
@@ -48,10 +49,12 @@ def create_new_scholarship(
     Admin creates scholarship.
     """
 
-    return create_scholarship(
+    scholarship = create_scholarship(
         db,
         scholarship_data
     )
+    delete_cache("scholarships:*")
+    return scholarship
 
 
 @router.get(
@@ -59,6 +62,8 @@ def create_new_scholarship(
     response_model=list[ScholarshipResponse]
 )
 def get_scholarships(
+    skip: int = 0,
+    limit: int = 100,
     field: str | None = None,
     min_amount: float | None = None,
     deadline_before: date | None = None,
@@ -69,12 +74,32 @@ def get_scholarships(
     List scholarships with optional filters.
     """
 
-    return get_all_scholarships(
+    cache_key = f"scholarships:{skip}:{limit}:{field}:{min_amount}:{deadline_before}"
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
+    scholarships = get_all_scholarships(
         db,
         field,
         min_amount,
-        deadline_before
+        deadline_before,
+        skip,
+        limit
     )
+
+    data = [
+        {
+            "id": s.id,
+            "title": s.title,
+            "amount": float(s.amount),
+            "deadline": str(s.deadline),
+            "field": s.field,
+            "eligibility": s.eligibility
+        } for s in scholarships
+    ]
+    set_cache(cache_key, data, expire_seconds=300)
+    return scholarships
 
 
 @router.get(
@@ -160,6 +185,7 @@ def update_existing_scholarship(
             detail="Scholarship not found"
         )
 
+    delete_cache("scholarships:*")
     return scholarship
 
 
@@ -186,6 +212,7 @@ def remove_scholarship(
             detail="Scholarship not found"
         )
 
+    delete_cache("scholarships:*")
     return {
         "message": "Scholarship deleted successfully"
     }

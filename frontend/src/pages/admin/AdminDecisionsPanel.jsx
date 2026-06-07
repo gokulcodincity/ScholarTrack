@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAllDecisions, getDecisionById, deleteDecision } from "../../services/adminService";
+import { getAllApplications } from "../../services/applicationService";
 import Loader from "../../components/Loader";
 import ErrorMessage from "../../components/ErrorMessage";
 
@@ -8,6 +9,7 @@ export default function AdminDecisionsPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedDecision, setSelectedDecision] = useState(null);
+  const [appMap, setAppMap] = useState({});
 
   useEffect(() => {
     fetchDecisions();
@@ -16,8 +18,20 @@ export default function AdminDecisionsPanel() {
   const fetchDecisions = async () => {
     try {
       setLoading(true);
-      const { data } = await getAllDecisions();
-      setDecisions(data);
+      const [decRes, appsRes] = await Promise.all([
+        getAllDecisions(),
+        getAllApplications()
+      ]);
+      setDecisions(decRes.data);
+      
+      const map = {};
+      appsRes.data.forEach(app => {
+        map[app.id] = {
+          student_name: app.student_name,
+          reviewer_name: app.reviewer_name
+        };
+      });
+      setAppMap(map);
     } catch (err) {
       setError("Failed to fetch decisions");
     } finally {
@@ -61,6 +75,8 @@ export default function AdminDecisionsPanel() {
               <tr>
                 <th className="px-4 py-3 rounded-l-lg">ID</th>
                 <th className="px-4 py-3">App ID</th>
+                <th className="px-4 py-3">Student Name</th>
+                <th className="px-4 py-3">Reviewer Name</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Admin ID</th>
                 <th className="px-4 py-3">Date</th>
@@ -72,6 +88,8 @@ export default function AdminDecisionsPanel() {
                 <tr key={d.id} className="border-b last:border-0 hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium">#{d.id}</td>
                   <td className="px-4 py-3 text-slate-600">#{d.application_id}</td>
+                  <td className="px-4 py-3 text-slate-800">{appMap[d.application_id]?.student_name || "Unknown"}</td>
+                  <td className="px-4 py-3 text-slate-600">{appMap[d.application_id]?.reviewer_name || "Unassigned"}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${
                       d.decision_status === "AWARDED" ? "bg-green-100 text-green-800" :

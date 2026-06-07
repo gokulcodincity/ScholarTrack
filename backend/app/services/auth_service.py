@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 
 from app.models.user import User
+from app.repositories.user_repository import UserRepository
+from app.repositories.student_repository import StudentRepository
 
 from app.config.security import (
     hash_password,
@@ -11,12 +13,10 @@ from app.config.security import (
 
 def register_user(data, db: Session):
 
-    existing_user = db.query(User).filter(
-        User.email == data.email
-    ).first()
+    user_repo = UserRepository(db)
+    existing_user = user_repo.get_by_email(data.email)
 
     if existing_user:
-
         return None
 
     user_role = data.role.upper()
@@ -30,9 +30,7 @@ def register_user(data, db: Session):
         role=user_role
     )
 
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    user = user_repo.create(user)
 
     # Automatically create an empty Student profile if the user is a STUDENT
     if user.role == "STUDENT":
@@ -43,20 +41,18 @@ def register_user(data, db: Session):
             cgpa=data.cgpa,
             academic_year=data.academic_year
         )
-        db.add(student_profile)
-        db.commit()
+        student_repo = StudentRepository(db)
+        student_repo.create(student_profile)
 
     return user
 
 
 def login_user(data, db: Session):
 
-    user = db.query(User).filter(
-        User.email == data.email
-    ).first()
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_email(data.email)
 
     if not user:
-
         return None
 
     if not verify_password(
@@ -65,6 +61,9 @@ def login_user(data, db: Session):
     ):
 
         return None
+
+    if not user.verified_email:
+        return "UNVERIFIED_EMAIL"
 
     # Block login until admin approves
     if user.role == "PENDING_REVIEWER":

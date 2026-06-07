@@ -72,7 +72,7 @@ function ReviewerRequestPage() {
       navigate("/");
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.detail || "Failed to submit request");
+      setError(err?.response?.data?.error?.message || err?.response?.data?.detail || "Failed to submit request");
     } finally {
       setLoading(false);
     }

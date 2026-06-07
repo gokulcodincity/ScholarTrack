@@ -12,7 +12,7 @@ from app.schemas.scholarship_schema import (
     ScholarshipUpdate
 )
 
-from app.utils.enums import DecisionStatus
+from app.utils.enums import DecisionStatus, ApplicationStatus
 
 
 def create_scholarship(
@@ -29,9 +29,12 @@ def create_scholarship(
 
     db.add(scholarship)
 
-    db.commit()
-
-    db.refresh(scholarship)
+    try:
+        db.commit()
+        db.refresh(scholarship)
+    except Exception:
+        db.rollback()
+        raise
 
     return scholarship
 
@@ -40,7 +43,9 @@ def get_all_scholarships(
     db: Session,
     field: str | None = None,
     min_amount: float | None = None,
-    deadline_before: date | None = None
+    deadline_before: date | None = None,
+    skip: int = 0,
+    limit: int = 100
 ):
     query = db.query(Scholarship)
 
@@ -59,7 +64,7 @@ def get_all_scholarships(
             Scholarship.deadline <= deadline_before
         )
 
-    return query.all()
+    return query.offset(skip).limit(limit).all()
 
 
 def get_scholarship_by_id(
@@ -81,41 +86,30 @@ def get_scholarship_stats(
     db: Session,
     scholarship_id: int
 ):
-    total_applied = (
-        db.query(Application)
-        .filter(
-            Application.scholarship_id == scholarship_id
-        )
-        .count()
-    )
-
-    decision_counts = (
+    rows = (
         db.query(
-            Decision.decision_status,
-            func.count(Decision.id)
-        )
-        .join(
-            Application,
-            Application.id == Decision.application_id
+            Application.status,
+            func.count(Application.id)
         )
         .filter(
             Application.scholarship_id == scholarship_id
         )
         .group_by(
-            Decision.decision_status
+            Application.status
         )
         .all()
     )
 
+    total_applied = 0
     awarded = 0
     shortlisted = 0
 
-    for status, count in decision_counts:
-
-        if status == DecisionStatus.AWARDED:
+    for status, count in rows:
+        total_applied += count
+        
+        if status == ApplicationStatus.AWARDED:
             awarded = count
-
-        elif status == DecisionStatus.SHORTLISTED:
+        elif status == ApplicationStatus.SHORTLISTED:
             shortlisted = count
 
     return {
@@ -151,9 +145,12 @@ def update_scholarship(
             value
         )
 
-    db.commit()
-
-    db.refresh(scholarship)
+    try:
+        db.commit()
+        db.refresh(scholarship)
+    except Exception:
+        db.rollback()
+        raise
 
     return scholarship
 

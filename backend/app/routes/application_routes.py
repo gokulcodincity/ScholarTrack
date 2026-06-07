@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
@@ -78,6 +79,8 @@ def create_new_application(
     response_model=list[ApplicationResponse]
 )
 def list_applications(
+    skip: int = 0,
+    limit: int = 100,
     student_id: int | None = None,
     reviewer_id: int | None = None,
     db: Session = Depends(get_db),
@@ -86,17 +89,21 @@ def list_applications(
     if student_id:
         return get_student_applications(
             db,
-            student_id
+            student_id,
+            skip,
+            limit
         )
 
     if reviewer_id:
         return get_reviewer_applications(
             db,
-            reviewer_id
+            reviewer_id,
+            skip,
+            limit
         )
 
     if current_user.get("role") == "ADMIN":
-        return get_all_applications(db)
+        return get_all_applications(db, skip, limit)
 
     return []
 
@@ -112,7 +119,8 @@ async def get_application(
 ):
     application = await get_application_full_details(
         db,
-        application_id
+        application_id,
+        current_user.get("role", "").upper()
     )
 
     if not application:
@@ -120,6 +128,18 @@ async def get_application(
             status_code=404,
             detail="Application not found"
         )
+
+    # Authorization matrix
+    role = current_user.get("role", "").upper()
+    user_id = current_user.get("id")
+    app_data = application.application
+
+    if role == "STUDENT":
+        if app_data.get("student_id") != user_id:
+            raise HTTPException(status_code=403, detail="You can only view your own applications")
+    elif role == "REVIEWER":
+        if app_data.get("reviewer_id") != user_id:
+            raise HTTPException(status_code=403, detail="This application is not assigned to you")
 
     return application
 
@@ -133,6 +153,9 @@ def get_student_application_list(
     db: Session = Depends(get_db),
     current_user=Depends(require_student)
 ):
+    if current_user.get("role") != "ADMIN" and current_user.get("id") != student_id:
+        raise HTTPException(status_code=403, detail="You can only view your own applications")
+
     return get_student_applications(
         db,
         student_id
@@ -148,6 +171,9 @@ def get_reviewer_application_list(
     db: Session = Depends(get_db),
     current_user=Depends(require_reviewer)
 ):
+    if current_user.get("role") != "ADMIN" and current_user.get("id") != reviewer_id:
+        raise HTTPException(status_code=403, detail="You can only view your own assigned applications")
+
     return get_reviewer_applications(
         db,
         reviewer_id
@@ -219,7 +245,8 @@ async def submit_application_review(
         review_data.scoring_rationale
     )
 
-    application = submit_review(
+    application = await run_in_threadpool(
+        submit_review,
         db,
         application_id
     )

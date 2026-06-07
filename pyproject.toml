@@ -5,6 +5,7 @@ description = "ScholarTrack Application"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "alembic>=1.18.4",
     "bcrypt>=5.0.0",
     "beanie>=2.1.0",
     "email-validator>=2.3.0",
@@ -16,10 +17,42 @@ dependencies = [
     "pymongo>=4.17.0",
     "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.32",
+    "redis>=8.0.0",
+    "slowapi>=0.1.9",
     "sqlalchemy>=2.0.50",
+    "structlog>=26.1.0",
     "uvicorn>=0.48.0",
 ]
 
 [tool.pyright]
 extraPaths = ["backend"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["."]
+addopts = "-v --cov=backend/app --cov-report=term-missing --cov-report=xml"
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.4",
+    "black>=26.5.1",
+    "flake8>=7.3.0",
+    "httpx>=0.28.1",
+    "isort>=8.0.1",
+    "mypy>=2.1.0",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "safety>=3.8.1",
+]
 

@@ -3,6 +3,7 @@ from datetime import date
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import ConfigDict
+from app.utils.sanitization import SanitizedStr
 
 
 class ScholarshipCreate(BaseModel):
@@ -10,13 +11,13 @@ class ScholarshipCreate(BaseModel):
     Schema for creating a scholarship.
     """
 
-    title: str = Field(
+    title: SanitizedStr = Field(
         ...,
         min_length=3,
         max_length=255
     )
 
-    field: str = Field(
+    field: SanitizedStr = Field(
         ...,
         min_length=2,
         max_length=100
@@ -27,7 +28,7 @@ class ScholarshipCreate(BaseModel):
         gt=0
     )
 
-    eligibility: str = Field(
+    eligibility: SanitizedStr = Field(
         ...,
         min_length=10
     )
@@ -40,10 +41,10 @@ class ScholarshipUpdate(BaseModel):
     Schema for updating scholarship details.
     """
 
-    title: str | None = None
-    field: str | None = None
+    title: SanitizedStr | None = None
+    field: SanitizedStr | None = None
     amount: float | None = None
-    eligibility: str | None = None
+    eligibility: SanitizedStr | None = None
     deadline: date | None = None
 
 

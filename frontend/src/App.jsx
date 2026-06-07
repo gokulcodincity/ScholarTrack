@@ -10,6 +10,7 @@ import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ReviewerRequestPage from "./pages/reviewer/ReviewerRequestPage";
 import StudentProfilePage from "./pages/student/StudentProfilePage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <Routes>
         <Route path="/"                   element={<LoginPage />} />
         <Route path="/register"           element={<RegisterPage />} />
+        <Route path="/verify-email"       element={<VerifyEmailPage />} />
         <Route path="/scholarships"       element={<ScholarshipsPage />} />
         <Route path="/scholarships/:id"   element={<ScholarshipDetailPage />} />
         <Route path="/apply/:scholarshipId" element={<ApplicationPage />} />

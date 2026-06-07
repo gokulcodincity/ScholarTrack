@@ -54,7 +54,7 @@ export default function ApplicationPage() {
       alert("Application submitted successfully!");
       navigate("/my-applications");
     } catch (err) {
-      setError(err?.response?.data?.detail || "Submission failed. Please try again.");
+      setError(err?.response?.data?.error?.message || err?.response?.data?.detail || "Submission failed. Please try again.");
     } finally {
       setSubmitting(false);
     }

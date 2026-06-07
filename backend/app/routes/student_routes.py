@@ -57,6 +57,9 @@ def get_student_route(
     Student token required.
     """
  
+    if current_user.get("id") != student_id:
+        raise HTTPException(status_code=403, detail="You can only view your own profile")
+
     student = get_student_by_id(
         student_id,
         db

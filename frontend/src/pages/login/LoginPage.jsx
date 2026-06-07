@@ -37,7 +37,7 @@ export default function LoginPage() {
         navigate("/scholarships");
       }
     } catch (err) {
-      setError(err?.response?.data?.detail || "Invalid credentials. Please try again.");
+      setError(err?.response?.data?.error?.message || err?.response?.data?.detail || "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }

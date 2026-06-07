@@ -45,12 +45,12 @@ function RegisterPage() {
           state: { user_id: response.data.user_id },
         });
       } else {
-        alert("Registration successful! Please login.");
+        alert(response.data.message || "Registration successful! Please check your email to verify your account.");
         navigate("/");
       }
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.detail || "Registration failed");
+      setError(err?.response?.data?.error?.message || err?.response?.data?.detail || "Registration failed");
     } finally {
       setLoading(false);
     }
